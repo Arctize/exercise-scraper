@@ -90,14 +90,14 @@ def ana():
                     total_length = int(total_length)
                     for data in response.iter_content(chunk_size=4096):
                         dl += len(data)
-                    f.write(data)
-                    width = 40
-                    done = int(width * dl / total_length)
-                    progress = '=' * done + '>' + ' ' * (width - done)
-                    sys.stdout.write(
-                        "\r -> Downloading %-20s [%s]" % (filename, progress))
-                    sys.stdout.flush()
-                print()
+                        f.write(data)
+                        width = 40
+                        done = int(width * dl / total_length)
+                        progress = '=' * done + '>' + ' ' * (width - done)
+                        sys.stdout.write(
+                            "\r -> Downloading %-20s [%s]" % (filename, progress))
+                        sys.stdout.flush()
+                    print()
     print('\n')
 
 
@@ -172,9 +172,9 @@ def dc():  # Website is not https -> Not implementing this yet.
     print('\n')
 
 
-# dc()
 ana()
 aw()
+# dc()
 
 
 print("All done. :)\n")
