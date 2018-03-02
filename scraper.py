@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+# Scraper to download all exercises, solutions and slides from the courses of
+# the 2nd semester in comp-sci, written in Python using BeautifulSoup.
+
+# MIT license applies. See LICENSE file.
+# Author: Patrick Wicki <patrick.wicki96@member.fsf.org>
+
 import urllib.request
 import urllib.parse
 import os
@@ -26,7 +32,7 @@ dirs = ["exercises/analysis", "exercises/dc",
         "exercises/pprog", "exercises/algowar"]
 
 for i in dirs:
-   if not os.path.isdir(i):
+    if not os.path.isdir(i):
         print("Creating directory: ", i)
         os.makedirs(i)
 print()
