@@ -52,6 +52,8 @@ print()
 # Enter your defaults here. Else, user will be asked by getLoginInfo method
 login = {'name': '', 'password': ''}
 
+def printb(str):
+	print(bcolors.BOLD + str + bcolors.ENDC)
 
 def getLoginInfo():
     global login
@@ -59,17 +61,26 @@ def getLoginInfo():
         login['name'] = input("Enter your ETHZ-login: ")
     if login['password'] == "":
         login['password'] = getpass.getpass(
-            "Enter the password for " + login['name'] + ": (hidden)")
+            "Enter the password for " + login['name'] + ": (hidden)\n")
 
 
 def download(url, link, path):
     filename = os.path.basename(path)
-    if not os.path.exists(os.path.dirname(path)):
-        os.makedirs(os.path.dirname(path))
+    dirname = os.path.dirname(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
     if not os.path.isfile(path):
         with open(path, 'wb') as f:
             response = requests.get(
                 url + link, stream=True, headers=headers, auth=(login['name'], login['password']))
+            if not response.ok:
+                if response.status_code == 401:
+                    print(bcolors.FAIL + 'Authorization error' + bcolors.ENDC)
+                    sys.exit(1)
+                else:
+                    print(bcolors.FAIL + 'Download error' + bcolors.ENDC)
+                    sys.exit(1)
+
             total_length = response.headers.get('content-length')
             if total_length is None:  # no content length header
                 f.write(response.content)
@@ -86,16 +97,21 @@ def download(url, link, path):
                     progress = '=' * done + '>' + ' ' * (width-done)
                     if width - done == 0:
                         sys.stdout.write(
-                            "\r   [%s%s%s] %s" % (bcolors.OKGREEN, progress, bcolors.ENDC, filename))
+                            "\r %-40.40s [%s%s%s]" % (filename, bcolors.OKGREEN, progress, bcolors.ENDC))
                     else:
                         sys.stdout.write(
-                            "\r   [%s%s%s] %s" % (bcolors.OKBLUE, progress, bcolors.ENDC, filename))
+                            "\r %-40.40s [%s%s%s]" % (filename, bcolors.OKBLUE, progress, bcolors.ENDC))
                     sys.stdout.flush()
                 print()
+    else:
+        if len(sys.argv) > 1 and sys.argv[1] == '-v':
+            sys.stdout.write(
+                " %-40.40s [%-22s%s%21s]\n" % (filename, bcolors.WARNING, 'Skipped', bcolors.ENDC))
+
 
 
 def ana():
-    print('[1/4] Analysis')
+    printb('[1/4] Analysis')
     url = 'https://metaphor.ethz.ch/x/2018/fs/401-0212-16L/'
     request = Request(url, headers=headers)
     try:
@@ -122,71 +138,8 @@ def ana():
     print('\n')
 
 
-def aw():
-    print('[2/4] Algorithmen und Wahrscheinlichkeiten')
-    url = 'https://www.cadmo.ethz.ch/education/lectures/FS18/AW/'
-
-    request = Request(url + 'index.html', headers=headers)
-    try:
-        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
-    except urllib.error.URLError:
-        input("No internet connection - connect to internet and try again.")
-        sys.exit(0)
-
-    lpart = '<table cellpadding="3" cellspacing="0" style="width:100%">'
-    rpart = 'Einschreibung in die Übungsstunden'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
-
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        if not 'http' in link:
-            links.append(link)
-
-    getLoginInfo()
-
-    basedir = dirs[3]
-    for link in links:
-        path = basedir + '/' + link.split('/', 2)[2]
-        download(url, link, path)
-    print('\n')
-
-
-def pp():
-    print('[3/4] Parallel Programming')
-    url = 'https://www.srl.inf.ethz.ch/'
-
-    request = Request(url + 'pp2018.php', headers=headers)
-    try:
-        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
-    except urllib.error.URLError:
-        input("No internet connection - connect to internet and try again.")
-        sys.exit(0)
-    print('\n')
-
-    lpart = 'Presentation Schedule'
-    rpart = 'Exams and Grading'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
-
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        links.append(link)
-
-    getLoginInfo()
-    basedir = dirs[2]
-    for link in links:
-        path = basedir + '/' + link.split('/', 2)[-1]
-        download(url, link, path)
-    print('\n')
-
-
 def dc():
-    print('[4/4] Design of Digital Circuits')
+    printb('[2/4] Design of Digital Circuits')
     url = 'https://safari.ethz.ch/'
     basedir = dirs[1]
 
@@ -209,7 +162,6 @@ def dc():
         link = link['href']
         links.append(link)
 
-    getLoginInfo()
     basedir = dirs[1]
     for link in links:
         path = basedir + '/' + link.split('media=')[-1]
@@ -218,10 +170,72 @@ def dc():
     print('\n')
 
 
+def aw():
+    getLoginInfo()
+    printb('[3/4] Algorithmen und Wahrscheinlichkeiten')
+    url = 'https://www.cadmo.ethz.ch/education/lectures/FS18/AW/'
+
+    request = Request(url + 'index.html', headers=headers)
+    try:
+        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
+    except urllib.error.URLError:
+        input("No internet connection - connect to internet and try again.")
+        sys.exit(0)
+
+    lpart = '<table cellpadding="3" cellspacing="0" style="width:100%">'
+    rpart = 'Einschreibung in die Übungsstunden'
+    soup = str(soup).partition(lpart)[-1]
+    soup = soup.rpartition(rpart)[0]
+    soup = BeautifulSoup(soup, 'html.parser')
+
+    links = []
+    for link in soup.find_all('a'):
+        link = link['href']
+        if not 'http' in link:
+            links.append(link)
+
+
+    basedir = dirs[3]
+    for link in links:
+        path = basedir + '/' + link.split('/', 2)[2]
+        download(url, link, path)
+    print('\n')
+
+
+def pp():
+    getLoginInfo()
+    printb('[4/4] Parallel Programming')
+    url = 'https://www.srl.inf.ethz.ch/'
+
+    request = Request(url + 'pp2018.php', headers=headers)
+    try:
+        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
+    except urllib.error.URLError:
+        input("No internet connection - connect to internet and try again.")
+        sys.exit(0)
+
+    lpart = 'Presentation Schedule'
+    rpart = 'Exams and Grading'
+    soup = str(soup).partition(lpart)[-1]
+    soup = soup.rpartition(rpart)[0]
+    soup = BeautifulSoup(soup, 'html.parser')
+
+    links = []
+    for link in soup.find_all('a'):
+        link = link['href']
+        links.append(link)
+
+    basedir = dirs[2]
+    for link in links:
+        path = basedir + '/' + link.split('/', 2)[-1]
+        download(url, link, path)
+    print('\n')
+
+
 ana()
+dc()
 aw()
 pp()
-dc()
 
 
 print("All done. :)\n")
