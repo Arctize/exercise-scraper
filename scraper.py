@@ -39,21 +39,13 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
-# Generate directories if nonexistent
-dirs = ["exercises/analysis", "exercises/dc",
-        "exercises/pprog", "exercises/algowar"]
-
-for i in dirs:
-    if not os.path.isdir(i):
-        print("Creating directory: ", i)
-        os.makedirs(i)
-print()
-
 # Enter your defaults here. Else, user will be asked by getLoginInfo method
 login = {'name': '', 'password': ''}
 
+
+# function to print str in bold format
 def printb(str):
-	print(bcolors.BOLD + str + bcolors.ENDC)
+    print(bcolors.BOLD + str + bcolors.ENDC)
 
 def getLoginInfo():
     global login
@@ -64,12 +56,13 @@ def getLoginInfo():
             "Enter the password for " + login['name'] + ": (hidden)\n")
 
 
+# Function to download a file
 def download(url, link, path):
     filename = os.path.basename(path)
     dirname = os.path.dirname(path)
     if not os.path.exists(dirname):
         os.makedirs(dirname)
-    if not os.path.isfile(path):
+    if not os.path.isfile(path) or (len(sys.argv) > 1 and sys.argv[1] == '-r'):
         with open(path, 'wb') as f:
             response = requests.get(
                 url + link, stream=True, headers=headers, auth=(login['name'], login['password']))
@@ -108,134 +101,103 @@ def download(url, link, path):
             sys.stdout.write(
                 " %-40.40s [%-22s%s%21s]\n" % (filename, bcolors.WARNING, 'Skipped', bcolors.ENDC))
 
-
-
-def ana():
-    printb('[1/4] Analysis')
-    url = 'https://metaphor.ethz.ch/x/2018/fs/401-0212-16L/'
-    request = Request(url, headers=headers)
+# Downloads all files in a filtered part of a website, e.g. in a table
+def downloadAll(name, basedir, url, url_ext, lpart, rpart):
+    printb(name)
+    request = Request(url + url_ext, headers=headers)
     try:
         soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
     except urllib.error.URLError:
         input("No internet connection - connect to internet and try again.")
         sys.exit(0)
 
+    soup = str(soup).partition(lpart)[-1]
+    soup = soup.rpartition(rpart)[0]
+    soup = BeautifulSoup(soup, 'html.parser')
+
+    links = []
+    for link in soup.find_all('a'):
+        print(link)
+        if "href" not in str(link):
+            continue
+        print(link)
+        link = link['href']
+        links.append(link)
+
+    print(links)
+
+    for link in links:
+        path = basedir + '/' + link.split('/', 1)[-1]
+        download(url, link, path)
+    print('\n')
+
+
+# TODO: systems programming
+
+
+def numcse():
+    name = 'NumCSE'
+    url = 'https://metaphor.ethz.ch/x/2018/hs/401-0663-00L/'
+    lpart = '<div class="page-header" id="exercises">'
+    rpart = 'Exercises are'
+    basedir = 'numCSE'
+    downloadAll(name, basedir, url, '', lpart, rpart)
+
+def ti():
+    name = 'Theoretische Informatik'
+    url = 'http://www.ita.inf.ethz.ch/theoInf18/'
+    lpart = '<table class="exercises">'
+    rpart = 'Kontakt'
+    basedir = 'ti'
+    downloadAll(name, basedir, url, '', lpart, rpart)
+
+def ana1():
+    basedir = "analysis-1"
+    url = 'https://metaphor.ethz.ch/x/2018/fs/401-0212-16L/'
     lpart = '<table class="table table-bordered table-condensed table-striped">'
     rpart = 'Übungsgruppen'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
+    downloadAll("Analysis I", basedir, url, '', lpart, rpart)
 
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        links.append(link)
-
-    basedir = dirs[0]
-    for link in links:
-        path = basedir + '/' + link.split('/', 1)[1]
-        download(url, link, path)
-    print('\n')
-
+def ana2():
+    basedir = "analysis-2"
+    url = 'https://metaphor.ethz.ch/x/2018/hs/401-0213-16L/'
+    lpart = '<h1>Übungsserien</h1>'
+    rpart = '<h1>Übungsstunden</h1>'
+    downloadAll("Analysis II", basedir, url, '', lpart, rpart)
 
 def dc():
-    printb('[2/4] Design of Digital Circuits')
+    name = 'Design of Digital Circuits'
     url = 'https://safari.ethz.ch/'
-    basedir = dirs[1]
-
-    request = Request(
-        url + 'digitaltechnik/spring2018/doku.php?id=labs', headers=headers)
-    try:
-        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
-    except urllib.error.URLError:
-        input("No internet connection - connect to internet and try again.")
-        sys.exit(0)
-
+    url_ext = 'digitaltechnik/spring2018/doku.php?id=labs'
+    basedir = "design_of_digital_circuits"
     lpart = '<div class="table sectionedit2">'
     rpart = 'Working with the FPGA Board'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
-
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        links.append(link)
-
-    basedir = dirs[1]
-    for link in links:
-        path = basedir + '/' + link.split('media=')[-1]
-        download(url, link, path)
-
-    print('\n')
-
+    downloadAll(name, basedir, url, url_ext, lpart, rpart)
 
 def aw():
     getLoginInfo()
-    printb('[3/4] Algorithmen und Wahrscheinlichkeiten')
+    basedir = 'aw'
+    name = 'Algorithmen und Wahrscheinlichkeiten'
     url = 'https://www.cadmo.ethz.ch/education/lectures/FS18/AW/'
-
-    request = Request(url + 'index.html', headers=headers)
-    try:
-        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
-    except urllib.error.URLError:
-        input("No internet connection - connect to internet and try again.")
-        sys.exit(0)
-
+    url_ext = 'index.html'
     lpart = '<table cellpadding="3" cellspacing="0" style="width:100%">'
     rpart = 'Einschreibung in die Übungsstunden'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
-
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        if not 'http' in link:
-            links.append(link)
-
-
-    basedir = dirs[3]
-    for link in links:
-        path = basedir + '/' + link.split('/', 2)[2]
-        download(url, link, path)
-    print('\n')
-
+    downloadAll(name, basedir, url, url_ext, lpart, rpart)
 
 def pp():
     getLoginInfo()
-    printb('[4/4] Parallel Programming')
-    url = 'https://www.srl.inf.ethz.ch/'
-
-    request = Request(url + 'pp2018.php', headers=headers)
-    try:
-        soup = BeautifulSoup(urllib.request.urlopen(request), 'html.parser')
-    except urllib.error.URLError:
-        input("No internet connection - connect to internet and try again.")
-        sys.exit(0)
-
+    url = 'https://www.sri.inf.ethz.ch/'
+    url_ext = 'pp2018.php'
     lpart = 'Presentation Schedule'
     rpart = 'Exams and Grading'
-    soup = str(soup).partition(lpart)[-1]
-    soup = soup.rpartition(rpart)[0]
-    soup = BeautifulSoup(soup, 'html.parser')
-
-    links = []
-    for link in soup.find_all('a'):
-        link = link['href']
-        links.append(link)
-
-    basedir = dirs[2]
-    for link in links:
-        path = basedir + '/' + link.split('/', 2)[-1]
-        download(url, link, path)
-    print('\n')
+    basedir = 'pprog'
+    name = "Parallel Computing"
+    downloadAll(name, basedir, url, url_ext, lpart, rpart)
 
 
-ana()
-dc()
-aw()
-pp()
+ana2()
+numcse()
+ti()
 
 
-print("All done. :)\n")
+print("All done. ;)\n")
