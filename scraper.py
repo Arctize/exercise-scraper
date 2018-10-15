@@ -117,14 +117,10 @@ def downloadAll(name, basedir, url, url_ext, lpart, rpart):
 
     links = []
     for link in soup.find_all('a'):
-        print(link)
         if "href" not in str(link):
             continue
-        print(link)
         link = link['href']
         links.append(link)
-
-    print(links)
 
     for link in links:
         path = basedir + '/' + link.split('/', 1)[-1]
